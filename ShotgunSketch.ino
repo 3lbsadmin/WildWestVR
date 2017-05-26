@@ -59,6 +59,7 @@ Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_
    Connections
    ===========
    Connect SCL to analog 5
+   
    Connect SDA to analog 4
    Connect VDD to 3.3V DC
    Connect GROUND to common ground
@@ -69,7 +70,7 @@ Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_
 */
 
 /* Set the delay between fresh samples */
-#define BNO055_SAMPLERATE_DELAY_MS (10)
+#define BNO055_SAMPLERATE_DELAY_MS (1)
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -126,7 +127,7 @@ void displaySensorDetails(void)
 void setup(void)
 {
   while (!Serial);
-  delay(500);
+  delay(100);
 
 
   triggerButton.setDebounceDelay(newDebounceDelay);
@@ -162,6 +163,9 @@ void setup(void)
   /* Disable command echo from Bluefruit */
   ble.echo(false);
 
+  ble.verbose(false);  // debug info is a little annoying after this point!
+
+
   Serial.println("Requesting Bluefruit info:");
   /* Print Bluefruit information */
   ble.info();
@@ -176,16 +180,19 @@ void setup(void)
   Serial.println(F("Enable HID Service (including Keyboard): "));
   if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) )
   {
-    if ( !ble.sendCommandCheckOK(F( "AT+BLEHIDEN=1" ))) {
-      error(F("Could not enable Keyboard"));
-    }
+    //if ( !ble.sendCommandCheckOK(F( "AT+BLEHIDEN=1" ))) {
+      //error(F("Could not enable Keyboard"));
+    //}
   } else
   {
-    if (! ble.sendCommandCheckOK(F( "AT+BLEKEYBOARDEN=1"  ))) {
-      error(F("Could not enable Keyboard"));
-    }
+    //if (! ble.sendCommandCheckOK(F( "AT+BLEKEYBOARDEN=1"  ))) {
+      //error(F("Could not enable Keyboard"));
+    //}
   }
 
+  Serial.println( F("Switching to DATA mode!") );
+  ble.setMode(BLUEFRUIT_MODE_DATA);
+  
   /* Add or remove service requires a reset */
   Serial.println(F("Performing a SW reset (service changes require a reset): "));
   if (! ble.reset() ) {
@@ -208,10 +215,10 @@ void setup(void)
 
   /* Display the current temperature */
   int8_t temp = bno.getTemp();
-  Serial.print("Current Temperature: ");
-  Serial.print(temp);
-  Serial.println(" C");
-  Serial.println("");
+  //Serial.print("Current Temperature: ");
+  //Serial.print(temp);
+  //Serial.println(" C");
+  //Serial.println("");
 
   bno.setExtCrystalUse(true);
 
@@ -257,23 +264,30 @@ void loop(void)
 
   if (triggerButton.onPress())
   {
-    ble.println("AT+BLEKEYBOARDCODE=00-00-" + hex_to_str( TRIGGER_KEY ));
-    Serial.println("trigger");
-    delay( 10 );
+    //ble.println("AT+BLEKEYBOARDCODE=00-00-" + hex_to_str( TRIGGER_KEY ));
+  
+    //delay( 10 );
     //  release key
-    ble.println("AT+BLEKEYBOARDCODE=00-00");
+    //ble.println("AT+BLEKEYBOARDCODE=00-00");
 
     recenterTime = millis() + recenterTimeDelay;
     digitalWrite(LED_BUILTIN, HIGH);
   }
 
+  if ( triggerButton.onRelease() )
+  {
+     Serial.println("triggerReleased");
+    ble.print("triggerReleased");
+  }
+
   if (reloadButton.onPress())
   {
-    ble.println("AT+BLEKEYBOARDCODE=00-00-" + hex_to_str( RELOAD_KEY ));
+    //ble.println("AT+BLEKEYBOARDCODE=00-00-" + hex_to_str( RELOAD_KEY ));
+    ble.print("reload");
     Serial.println("reload");
-    delay( 10 );
+    //delay( 10 );
     //  release key
-    ble.println("AT+BLEKEYBOARDCODE=00-00");
+    //ble.println("AT+BLEKEYBOARDCODE=00-00");
     digitalWrite(LED_BUILTIN, HIGH);
   }
 
@@ -284,16 +298,20 @@ void loop(void)
 
   if (triggerButton.isPressed())
   {
+    Serial.println("trigger");
+    ble.print("trigger");
+    
     if (  millis() > recenterTime )
     {
 
       CalibrateGun();
-
-      ble.println("AT+BLEKEYBOARDCODE=00-00-" + hex_to_str( RECENTER_KEY ));
+      
+      ble.print("recenter");
+      //ble.println("AT+BLEKEYBOARDCODE=00-00-" + hex_to_str( RECENTER_KEY ));
       Serial.println("recenter");
-      delay( 10 );
+      //delay( 10 );
       //  release key
-      ble.println("AT+BLEKEYBOARDCODE=00-00");
+      //ble.println("AT+BLEKEYBOARDCODE=00-00");
       recenterTime = millis() + 10000;
     }
   }
@@ -389,7 +407,7 @@ void loop(void)
     Serial.println(diffQuat.w(), 4);
 
 
-    ble.print("AT+BLEKEYBOARD=");
+    //ble.print("AT+BLEKEYBOARD=");
     ble.print(diffQuat.x(), 4);
     ble.print(",");
 
